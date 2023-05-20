@@ -52,13 +52,13 @@ const HomePage = () => {
                 return getStatus(celery_id)
             }else{
                 if(response.data.file !== true){
-                    throw new Error("ID not found")
+                    throw "ID not found"
                 }
             }
             await download()
         }).catch(error => {
             console.log(error)
-            setError(error)
+            setError(typeof error === 'string'?error:'')
             setLoading(false)
         }).then(() => {})
     }

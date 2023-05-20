@@ -75,11 +75,19 @@ class GenerateView(APIView):
         )
 
 
+def _get_file_path(manifest_id):
+    return str(BASE_DIR) + (f"/storage/data-{manifest_id}.csv")
+
+
 class GetStatus(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, manifest_id, celery_id):
         result = simple_app.AsyncResult(celery_id, app=simple_app)
+        file_exists = os.path.exists(_get_file_path(manifest_id))
+        if result.status == "SUCCESS" and not file_exists:
+            time.sleep(3)
+            file_exists = os.path.exists(_get_file_path(manifest_id))
         return Response(
             {
                 "message": "Status of the Task " + str(result.state),
@@ -96,7 +104,7 @@ class DownloadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, manifest_id):
-        path_to_file = str(BASE_DIR) + (f"/storage/data-{manifest_id}.csv")
+        path_to_file = _get_file_path(manifest_id)
         f = open(path_to_file, "rb")
         pdfFile = File(f)
         response = HttpResponse(pdfFile.read())
