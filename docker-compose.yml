@@ -1,0 +1,62 @@
+version: "3.7"
+services:
+  djangoapp:
+    restart: always
+    build: ./manifest
+    command: gunicorn manifest.wsgi:application --bind 0.0.0.0:8000 --timeout 90  --reload
+    volumes:
+      - ./manifest/storage:/drf_src/images
+    ports:
+      - 8000:8000
+    depends_on:
+      - rabbitmq
+      - mongo_server
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=pass
+      - DEBUG=True
+      # - CELERY_BROKER_URL=redis://redis:6379/0
+      # - CELERY_RESULT_BACKEND=redis://redis:6379/0
+
+  rabbitmq:
+    hostname: rabbitmq
+    image: "rabbitmq:3-management" 
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=pass
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+
+  mongo_server:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+  # redis:
+  #   image: redis:7-alpine
+  #   hostname: redis_server
+    
+
+  celery_worker:
+    build: './celery_worker'
+    user: nobody
+    volumes:
+      - ./manifest/storage:/celery_worker/images
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=pass
+    depends_on:
+      - rabbitmq
+      - djangoapp
+      - mongo_server
+
+  react_app:
+    build: './manifest-front'
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_SERVER_ADDRESS=http://0.0.0.0:8000/
+    depends_on:
+      - rabbitmq
+      - djangoapp
+      - mongo_server

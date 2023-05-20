@@ -1,0 +1,7 @@
+uvicorn
+celery[mongodb]
+celery[redis]
+python-multipart
+grequests
+celery==5.2.7
+redis==4.3.4
